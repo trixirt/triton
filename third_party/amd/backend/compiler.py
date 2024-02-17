@@ -51,7 +51,7 @@ class HIPOptions:
         object.__setattr__(self, 'warp_size', warp_size)
         oclc_wavefrontsize_lib = "oclc_wavefrontsize64_on" if self.warp_size == 64 else "oclc_wavefrontsize64_off"
         libs = [
-            "cuda2gcn", "opencl", "ocml", "ockl", "oclc_finite_only_off", "oclc_daz_opt_off",
+            "opencl", "ocml", "ockl", "oclc_finite_only_off", "oclc_daz_opt_off",
             "oclc_correctly_rounded_sqrt_on", "oclc_unsafe_math_off", oclc_wavefrontsize_lib, "oclc_abi_version_400"
         ]
         libs += ['oclc_isa_version_' + self.arch.replace('gfx', '')]
