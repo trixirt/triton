@@ -258,7 +258,7 @@ def compile_aot_kernels(dir, kernel_path, dtype, BM, BN, BK, ha_hb_hints):
 
 
 def link_aot_kernels(dir):
-    linker_path = os.path.join(triton.tools.__path__[0], "link.py")
+    linker_path = os.path.join(triton.tools.__path__[0], "link_cuda.py")
 
     # link all desired configs
     h_files = glob.glob(os.path.join(dir, "*.h"))

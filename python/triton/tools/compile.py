@@ -1,6 +1,6 @@
 import binascii
 import hashlib
-import importlib.util
+import importlib
 import sys
 from argparse import ArgumentParser
 from pathlib import Path
@@ -8,7 +8,7 @@ from typing import List
 
 import triton
 from triton.compiler.code_generator import kernel_suffix
-from triton.backends.nvidia.driver import ty_to_cpp
+#from triton.backends.nvidia.driver import ty_to_cpp
 
 desc = """
 Triton ahead-of-time compiler:
@@ -109,7 +109,9 @@ if __name__ == "__main__":
         constants.update({i: 1})
     src = triton.compiler.ASTSource(fn=kernel, constants=constants, signature=signature, attrs=attrs)
     opts = {"num_warps": args.num_warps, "num_stages": args.num_stages}
-    ccinfo = triton.compile(src, options=opts)
+    target = triton.runtime.driver.active.get_current_target()
+    ccinfo = triton.compile(src, target=target, options=opts)
+
     arg_names = []
     arg_types = []
     for i in signature.keys():
@@ -121,14 +123,21 @@ if __name__ == "__main__":
     suffix = kernel_suffix(signature.values(), attrs)
     func_name = '_'.join([out_name, sig_hash, suffix])
     triton_kernel_name = '_'.join([args.kernel_name, suffix])
-    hex_ = str(binascii.hexlify(ccinfo.asm["cubin"]))[2:-1]
+    if target[0] == 'cuda':
+        hex_ = str(binascii.hexlify(ccinfo.asm["cubin"]))[2:-1]
+        driver_module = importlib.import_module('triton.backends.nvidia.driver')
+    elif target[0] == 'hip':
+        hex_ = str(binascii.hexlify(ccinfo.asm["hsaco"]))[2:-1]
+        driver_module = importlib.import_module('triton.backends.amd.driver')
+    else:
+        raise Exception("Need to specify backend's cubin equivelent")
     params = {
         "kernel_name": func_name,
         "triton_kernel_name": triton_kernel_name,
         "bin_size": len(hex_),
         "bin_data": ", ".join([f"0x{x}{y}" for x, y in zip(hex_[::2], hex_[1::2])]),
-        "signature": ", ".join([f"{ty_to_cpp(ty)} {name}" for name, ty in zip(arg_names, arg_types)]),
-        "full_signature": ", ".join([f"{ty_to_cpp(signature[i])} {kernel.arg_names[i]}" for i in signature.keys()]),
+        "signature": ", ".join([f"{driver_module.ty_to_cpp(ty)} {name}" for name, ty in zip(arg_names, arg_types)]),
+        "full_signature": ", ".join([f"{driver_module.ty_to_cpp(signature[i])} {kernel.arg_names[i]}" for i in signature.keys()]),
         "arg_pointers": ", ".join([f"&{arg}" for arg in arg_names]),
         "num_args": len(arg_names),
         "kernel_docstring": doc_string,
@@ -141,6 +150,6 @@ if __name__ == "__main__":
         "_placeholder": "",
     }
     for ext in ['h', 'c']:
-        template_path = Path(__file__).parent / f"compile.{ext}"
+        template_path = Path(__file__).parent / f"compile_{target[0]}.{ext}"
         with out_path.with_suffix(f".{sig_hash}_{suffix}.{ext}").open("w") as fp:
             fp.write(Path(template_path).read_text().format(**params))

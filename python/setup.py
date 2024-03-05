@@ -401,7 +401,7 @@ class plugin_egginfo(egg_info):
 
 
 package_data = dict()
-package_data["triton/tools"] = ["compile.h", "compile.c"]
+package_data["triton/tools"] = ["compile_cuda.h", "compile_cuda.c", "compile_hip.h", "compile_hip.c"]
 package_data.update({f"triton/backends/{b.name}": b.package_data for b in backends})
 
 setup(
