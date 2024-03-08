@@ -39,16 +39,6 @@ class BackendInstaller:
         # Initialize submodule if there is one for in-tree backends.
         if not is_external:
             root_dir = os.path.join(os.pardir, "third_party")
-            assert backend_name in os.listdir(
-                root_dir), f"{backend_name} is requested for install but not present in {root_dir}"
-
-            try:
-                subprocess.run(["git", "submodule", "update", "--init", f"{backend_name}"], check=True,
-                               stdout=subprocess.DEVNULL, cwd=root_dir)
-            except subprocess.CalledProcessError:
-                pass
-            except FileNotFoundError:
-                pass
 
             backend_src_dir = os.path.join(root_dir, backend_name)
 
@@ -369,28 +359,6 @@ class CMakeBuild(build_ext):
         subprocess.check_call(["cmake", "--build", "."] + build_args, cwd=cmake_dir)
         subprocess.check_call(["cmake", "--build", ".", "--target", "mlir-doc"], cwd=cmake_dir)
 
-
-download_and_copy(
-    src_path="bin/ptxas",
-    variable="TRITON_PTXAS_PATH",
-    version="12.4.99",
-    url_func=lambda arch, version:
-    f"https://anaconda.org/nvidia/cuda-nvcc/{version}/download/linux-{arch}/cuda-nvcc-{version}-0.tar.bz2",
-)
-download_and_copy(
-    src_path="bin/cuobjdump",
-    variable="TRITON_CUOBJDUMP_PATH",
-    version="12.4.99",
-    url_func=lambda arch, version:
-    f"https://anaconda.org/nvidia/cuda-cuobjdump/{version}/download/linux-{arch}/cuda-cuobjdump-{version}-0.tar.bz2",
-)
-download_and_copy(
-    src_path="bin/nvdisasm",
-    variable="TRITON_NVDISASM_PATH",
-    version="12.4.99",
-    url_func=lambda arch, version:
-    f"https://anaconda.org/nvidia/cuda-nvdisasm/{version}/download/linux-{arch}/cuda-nvdisasm-{version}-0.tar.bz2",
-)
 
 backends = [*BackendInstaller.copy(["nvidia", "amd"]), *BackendInstaller.copy_externals()]
 
